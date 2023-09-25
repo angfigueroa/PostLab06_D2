@@ -1,0 +1,208 @@
+/*
+  SD card read/write
+  Autor: Angela Figueroa 21395
+  Fecha: 9/24/2023
+
+ */
+
+#include <SPI.h>
+#include <SD.h>
+
+File root;
+File myFile;
+int menu;
+
+
+void setup()
+{
+  // Open serial communications and wait for port to open:
+  Serial.begin(115200);
+  SPI.setModule(0);
+
+  Serial.print("Initializing SD card...");
+  // On the Ethernet Shield, CS is pin 4. It's set as an output by default.
+  // Note that even if it's not used as the CS pin, the hardware SS pin
+  // (10 on most Arduino boards, 53 on the Mega) must be left as an output
+  // or the SD library functions will not work.
+  pinMode(PA_3, OUTPUT);
+
+  if (!SD.begin(PA_3)) {
+    Serial.println("initialization failed!");//fracaso
+    return;
+  }
+  Serial.println("initialization done.");//termina
+
+  root = SD.open("/");//abre el sd
+
+  printDirectory(root,0);
+
+  Serial.println("done!");//confirma
+  imp_menu();
+} 
+
+ 
+void loop()
+{
+  if(Serial.available()> 0){
+    menu = Serial.read();
+    if(menu == '1'){//al presionae 1
+      imp_CA();
+    }
+    else if(menu == '2'){//al presionae 2
+      imp_FL();
+    }
+    else if(menu == '3'){//al presionae 3
+      imp_CR();
+    }
+    else if (menu == '6') //al presionae 6
+    {
+      crear_dibujo();
+    }
+    else if(menu == '0'){//al presionae 0
+      myFile = SD.open("/");
+      printDirectory(myFile,0);
+      imp_menu();  
+    }
+    else {
+      Serial.println("Ingreso no es valido, intente de nuevo");//al presionar cualquier tecla
+      //Serial.write(menu);
+    }
+  }
+  
+}
+
+//Funcion para imprimir mis datos en la SD
+void printDirectory(File dir, int numTabs){
+  while(true){
+
+    File entry = dir.openNextFile();
+    if (!entry){
+      //no more files
+      break;
+    }
+    for (uint8_t i=0; i<numTabs; i++){
+      Serial.print('\t'); 
+    }
+    Serial.print(entry.name());
+    if (entry.isDirectory()){
+      Serial.println("/");
+      printDirectory(entry, numTabs+1);
+    } else {
+      //files have sizes, directories do not
+      Serial.print("\t\t");
+      Serial.println(entry.size(), DEC);
+    }
+    entry.close();
+  }
+}
+//************************************************************************
+void imp_CA(){
+  myFile = SD.open("CABALLO.txt");//archivo.txt del caballo
+  if(myFile){
+    Serial.println("CABALLO.TXT: ");//sale en la terminal
+
+    while (myFile.available()){
+      Serial.write(myFile.read());
+    }
+    //cerrar archivo
+    myFile.close();
+  } else{
+    Serial.println("Error para abirir CABALLO.TXT");//por si no se logra abrir
+  }
+  imp_menu();
+}
+//***************************************************************************
+void imp_FL(){
+  myFile = SD.open("FLOR.txt");//archivo.txt de la flor
+  if(myFile){
+    Serial.println("FLOR.TXT: ");//sale en la terminal
+
+    while (myFile.available()){
+      Serial.write(myFile.read());
+    }
+    //cerrar archivo
+    myFile.close();
+  } else{
+    Serial.println("Error para abirir FLOR.TXT");//por si no se logra abrir
+  }
+  imp_menu();
+}
+//****************************************************************************
+void imp_CR(){
+  myFile = SD.open("CARRO.txt");//archivo.txt del carro
+  if(myFile){
+    Serial.println("CARRO.TXT: ");//sale en la terminal
+
+    while (myFile.available()){
+      Serial.write(myFile.read());
+    }
+    //cerrar archivo
+    myFile.close();
+  } else{
+    Serial.println("Error para abirir CARRO.TXT");//por si no se logra abrir
+  }
+  imp_menu();
+}
+//el menu que aparece en la terminal
+void imp_menu(){
+  Serial.println("");
+  Serial.println("Que archivo quiere abrir?");
+  Serial.println("Presione 0 para visualizar los archivos de la SD");
+  Serial.println("Presione 1 para visualizar el primer archivo");
+  Serial.println("Presione 2 para visualizar el segundo archivo");
+  Serial.println("Presione 3 para visualizar el tercer archivo");
+  Serial.println("Presione 6 para crear una nueva imagen dibujando y guardar en la SD"); 
+  Serial.println("");  
+}
+
+
+//ayuda al ususario crear su propio dibujo
+void crear_dibujo()
+{
+  Serial.println("Dibuje un círculo en la terminal utilizando caracteres.");
+  Serial.println("Utilice 'o' para dibujar y '!' para terminar y guardar.");
+
+  String dibujo = "";  // Variable para almacenar el dibujo
+
+  while (true)
+  {
+    if (Serial.available() > 0)
+    {
+      char c = Serial.read();
+
+      // Si el usuario envía '!', terminamos de dibujar y guardamos en el archivo
+      if (c == '!')
+      {
+        Serial.println("Guardando el dibujo...");
+
+        // Guardar el dibujo en un archivo
+        myFile = SD.open("NUEVO.txt", FILE_WRITE);
+
+        if (myFile)
+        {
+          myFile.print(dibujo);
+          myFile.close();
+          Serial.println("Dibujo guardado correctamente como circulo.txt");
+        }
+        else
+        {
+          Serial.println("Error al guardar el dibujo.");
+        }
+
+        imp_menu();
+        break;
+      }
+
+      // Si el usuario envía 'o', dibujamos un carácter para representar el círculo
+      if (c == 'o')
+      {
+        dibujo += '*';  // Puedes utilizar cualquier carácter que desees para el dibujo
+        Serial.print('*');
+      }
+      else
+      {
+        Serial.print(c);
+      }
+    }
+  }
+}
